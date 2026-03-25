@@ -1,9 +1,5 @@
 {
-  "name": "AI Studio Applet",
-  "description": "A comprehensive AI Studio application with admin panel and photo upload features.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone",
-    "geolocation"
-  ]
+  "name": "AI Prompt Generator Pro",
+  "description": "A professional AI prompt generator with multi-model support (Gemini Pro/Flash), secure Firebase CRUD operations, and advanced Super Admin controls.",
+  "requestFramePermissions": []
 }

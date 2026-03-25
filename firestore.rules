@@ -6,26 +6,39 @@ service cloud.firestore {
     // ===============================================================
     //
     // Collection: users
-    // Document ID: userId
+    // Document ID: {userId}
     // Fields:
     //   - uid: string (required)
     //   - email: string (required)
     //   - displayName: string (optional)
-    //   - role: string (required, ['admin', 'user'])
+    //   - role: string (required, 'admin' or 'user')
+    //   - userApiKey: string (optional)
     //   - createdAt: timestamp (required)
     //
-    // Collection: developers
-    // Document ID: devId
+    // Collection: prompts
+    // Document ID: {promptId}
     // Fields:
-    //   - name: string (required)
-    //   - devPhotoURL: string (optional)
-    //   - updatedAt: timestamp (required)
+    //   - id: string (required)
+    //   - uid: string (required)
+    //   - title: string (optional)
+    //   - inputCriteria: map (optional)
+    //   - generatedPrompt: string (required)
+    //   - modelUsed: string (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: settings
+    // Document ID: global
+    // Fields:
+    //   - superAdminApiKey: string (optional)
+    //   - isSuperAdminApiKeyEnabled: bool (optional)
+    //   - isSuperAdminApiKeyBlocked: bool (optional)
     //
     // ===============================================================
 
     // ===============================================================
     // Helper Functions
     // ===============================================================
+
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -35,23 +48,51 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        (request.auth.token.email == "mustafa.rahman.official@gmail.com" && request.auth.token.email_verified == true)
-      );
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "mustafa.rahman.official@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
     }
 
     function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email', 'role']) &&
-             data.uid is string &&
+      return data.uid is string &&
              data.email is string &&
-             data.role in ['admin', 'user'];
+             data.role in ['admin', 'user'] &&
+             (!('displayName' in data) || data.displayName is string) &&
+             (!('userApiKey' in data) || data.userApiKey is string) &&
+             data.createdAt is timestamp;
     }
 
-    function isValidDeveloper(data) {
-      return data.keys().hasAll(['name']) &&
-             data.name is string &&
-             (!('devPhotoURL' in data) || data.devPhotoURL is string);
+    function isValidPrompt(data) {
+      return data.id is string &&
+             data.uid is string &&
+             data.generatedPrompt is string &&
+             data.generatedPrompt.size() < 10000 &&
+             data.modelUsed is string &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidSettings(data) {
+      return (!('superAdminApiKey' in data) || data.superAdminApiKey is string) &&
+             (!('isSuperAdminApiKeyEnabled' in data) || data.isSuperAdminApiKeyEnabled is bool) &&
+             (!('isSuperAdminApiKeyBlocked' in data) || data.isSuperAdminApiKeyBlocked is bool);
     }
 
     // ===============================================================
@@ -59,14 +100,26 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
-      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) &&
+                    ((isOwner(userId) && request.resource.data.role == 'user') || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) &&
+                    ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
+      allow delete: if isAdmin();
     }
 
-    match /developers/{devId} {
-      allow read: if true; // Publicly readable
-      allow write: if isAdmin() && isValidDeveloper(request.resource.data);
+    match /prompts/{promptId} {
+      allow read: if isAuthenticated() && (isDocOwner() || isAdmin());
+      allow create: if isAuthenticated() && isValidPrompt(request.resource.data) &&
+                    (request.resource.data.uid == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() && isValidPrompt(request.resource.data) &&
+                    (isDocOwner() || isAdmin()) && uidNotModified();
+      allow delete: if isAuthenticated() && (isDocOwner() || isAdmin());
+    }
+
+    match /settings/global {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
     }
   }
 }

@@ -1,20 +1,15 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# AI Prompt Generator Pro
 
-# Run and deploy your AI Studio app
+An intelligent tool to help developers and content creators generate high-quality, effective prompts for AI models.
 
-This contains everything you need to run your app locally.
+## Features
+- **Multiple Modes**: General, Feature Development, Bug Fix.
+- **Dynamic Forms**: Input fields tailored to the selected mode.
+- **History Tracking**: Save and reuse previously generated prompts.
+- **Copy/Export**: Easily copy prompts to the clipboard.
 
-View your app in AI Studio: https://ai.studio/apps/084ac151-f58c-4d1a-829f-0027cc45d6fd
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Setup
+1. Clone the repository.
+2. Install dependencies: `npm install`
+3. Configure environment variables: Copy `.env.example` to `.env` and add your `GEMINI_API_KEY`.
+4. Run the development server: `npm run dev`

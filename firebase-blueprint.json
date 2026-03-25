@@ -2,37 +2,56 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "User profile information.",
+      "description": "Application user profile and settings.",
       "type": "object",
       "properties": {
-        "uid": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "displayName": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "user"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User role (admin or user)" },
+        "userApiKey": { "type": "string", "description": "User's own Gemini API key" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
       },
       "required": ["uid", "email", "role"]
     },
-    "Developer": {
-      "title": "Developer",
-      "description": "Developer information and photo.",
+    "Prompt": {
+      "title": "Prompt",
+      "description": "A generated AI prompt and its metadata.",
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "devPhotoURL": { "type": "string", "description": "Base64 encoded photo or URL" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "id": { "type": "string", "description": "Unique prompt ID" },
+        "uid": { "type": "string", "description": "Owner's UID" },
+        "title": { "type": "string", "description": "Title of the prompt" },
+        "inputCriteria": { "type": "object", "description": "Input criteria used for generation" },
+        "generatedPrompt": { "type": "string", "description": "The final generated prompt text" },
+        "modelUsed": { "type": "string", "description": "The Gemini model used (Pro or Flash)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Generation timestamp" }
       },
-      "required": ["name"]
+      "required": ["id", "uid", "generatedPrompt", "modelUsed", "createdAt"]
+    },
+    "GlobalSettings": {
+      "title": "Global Settings",
+      "description": "System-wide settings managed by super admin.",
+      "type": "object",
+      "properties": {
+        "superAdminApiKey": { "type": "string", "description": "Default API key for all users" },
+        "isSuperAdminApiKeyEnabled": { "type": "boolean", "description": "Whether the default key is active" },
+        "isSuperAdminApiKeyBlocked": { "type": "boolean", "description": "Whether the super admin key is blocked" }
+      }
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "User",
-      "description": "User profiles collection."
+      "description": "User profiles"
     },
-    "/developers/{devId}": {
-      "schema": "Developer",
-      "description": "Developers information collection."
+    "/prompts/{promptId}": {
+      "schema": "Prompt",
+      "description": "Stored prompts"
+    },
+    "/settings/global": {
+      "schema": "GlobalSettings",
+      "description": "Global system settings"
     }
   }
 }
