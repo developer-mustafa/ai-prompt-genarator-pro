@@ -1,0 +1,38 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Developer": {
+      "title": "Developer",
+      "description": "Developer information and photo.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "devPhotoURL": { "type": "string", "description": "Base64 encoded photo or URL" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles collection."
+    },
+    "/developers/{devId}": {
+      "schema": "Developer",
+      "description": "Developers information collection."
+    }
+  }
+}

@@ -1,5 +1,9 @@
 {
-  "name": "Smart AI Prompt Generator",
-  "description": "Generate optimized, structured prompts for ChatGPT/Claude based on your specific tasks (General, Feature, Bug Fix).",
-  "requestFramePermissions": []
+  "name": "AI Studio Applet",
+  "description": "A comprehensive AI Studio application with admin panel and photo upload features.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
 }
