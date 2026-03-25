@@ -49,7 +49,10 @@ export default function Home() {
                   render={
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar className="h-10 w-10 border-2 border-primary/10">
-                        <AvatarImage src={profile?.displayName ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.displayName}` : ''} />
+                        <AvatarImage 
+                          src={profile?.photoURL || (profile?.displayName ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.displayName}` : '')} 
+                          referrerPolicy="no-referrer"
+                        />
                         <AvatarFallback className="bg-primary/5 text-primary">
                           {profile?.displayName?.charAt(0) || <User className="h-5 w-5" />}
                         </AvatarFallback>

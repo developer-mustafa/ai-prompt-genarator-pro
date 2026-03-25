@@ -9,6 +9,7 @@ interface UserProfile {
   uid: string;
   email: string;
   displayName: string;
+  photoURL?: string;
   role: 'admin' | 'user';
   userApiKey?: string;
   createdAt: any;
@@ -39,7 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         const unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
-            setProfile(docSnap.data() as UserProfile);
+            const data = docSnap.data() as UserProfile;
+            setProfile(data);
+            
+            // Sync photoURL if it's missing or changed in Google
+            if (firebaseUser.photoURL && data.photoURL !== firebaseUser.photoURL) {
+              setDoc(userDocRef, { photoURL: firebaseUser.photoURL }, { merge: true })
+                .catch(err => handleFirestoreError(err, OperationTypeEnum.UPDATE, `users/${firebaseUser.uid}`));
+            }
           } else {
             // Create profile if it doesn't exist
             const isFirstAdmin = firebaseUser.email === "mustafa.rahman.official@gmail.com";
@@ -47,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               displayName: firebaseUser.displayName || '',
+              photoURL: firebaseUser.photoURL || '',
               role: isFirstAdmin ? 'admin' : 'user',
               createdAt: new Date(),
             };
