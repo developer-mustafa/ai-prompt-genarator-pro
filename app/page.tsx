@@ -10,7 +10,8 @@ import { Wand2, LogOut, Shield, LayoutDashboard, Moon, Sun, User } from 'lucide-
 import { useTheme } from 'next-themes';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DeveloperHeaderModal, DeveloperFooter } from '@/components/DeveloperCredit';
 
 export default function Home() {
   const { profile, logout } = useAuth();
@@ -41,6 +42,8 @@ export default function Home() {
                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               </Button>
 
+              <DeveloperHeaderModal />
+
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
@@ -54,14 +57,16 @@ export default function Home() {
                     </Button>
                   }
                 />
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{profile?.displayName || 'User'}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{profile?.email}</p>
-                      <p className="text-[10px] font-bold uppercase text-primary mt-1">{profile?.role}</p>
-                    </div>
-                  </DropdownMenuLabel>
+                <DropdownMenuContent className="w-56" align="end">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{profile?.displayName || 'User'}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{profile?.email}</p>
+                        <p className="text-[10px] font-bold uppercase text-primary mt-1">{profile?.role}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -114,12 +119,7 @@ export default function Home() {
           </Tabs>
         </main>
 
-        {/* Footer */}
-        <footer className="border-t bg-background py-6">
-          <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-            <p>© 2026 AI Prompt Generator Pro. Powered by Gemini 3.1.</p>
-          </div>
-        </footer>
+        <DeveloperFooter />
       </div>
     </AuthGuard>
   );

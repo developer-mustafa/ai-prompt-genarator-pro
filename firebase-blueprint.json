@@ -36,7 +36,13 @@
       "properties": {
         "superAdminApiKey": { "type": "string", "description": "Default API key for all users" },
         "isSuperAdminApiKeyEnabled": { "type": "boolean", "description": "Whether the default key is active" },
-        "isSuperAdminApiKeyBlocked": { "type": "boolean", "description": "Whether the super admin key is blocked" }
+        "isSuperAdminApiKeyBlocked": { "type": "boolean", "description": "Whether the super admin key is blocked" },
+        "developerName": { "type": "string", "description": "Developer Name" },
+        "developerAddress": { "type": "string", "description": "Developer Address" },
+        "developerMobile": { "type": "string", "description": "Developer Mobile" },
+        "developerUrl": { "type": "string", "description": "Developer Website URL" },
+        "developerPhoto": { "type": "string", "description": "Developer Photo URL" },
+        "developerSkills": { "type": "string", "description": "Developer Skills (comma separated)" }
       }
     }
   },

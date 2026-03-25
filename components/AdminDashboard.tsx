@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { db, handleFirestoreError, OperationTypeEnum } from '@/lib/firebase';
 import { doc, setDoc, onSnapshot, collection, getDocs } from 'firebase/firestore';
@@ -16,6 +17,12 @@ interface GlobalSettings {
   superAdminApiKey?: string;
   isSuperAdminApiKeyEnabled?: boolean;
   isSuperAdminApiKeyBlocked?: boolean;
+  developerName?: string;
+  developerAddress?: string;
+  developerMobile?: string;
+  developerUrl?: string;
+  developerPhoto?: string;
+  developerSkills?: string;
 }
 
 export function AdminDashboard() {
@@ -24,6 +31,12 @@ export function AdminDashboard() {
     superAdminApiKey: '',
     isSuperAdminApiKeyEnabled: false,
     isSuperAdminApiKeyBlocked: false,
+    developerName: '',
+    developerAddress: '',
+    developerMobile: '',
+    developerUrl: '',
+    developerPhoto: '',
+    developerSkills: '',
   });
   const [showKey, setShowKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +78,21 @@ export function AdminDashboard() {
       handleFirestoreError(error, OperationTypeEnum.UPDATE, 'settings/global');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 500000) { // 500KB limit for base64 in firestore
+        toast.error("Photo is too large. Please use a photo under 500KB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings({ ...settings, developerPhoto: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -165,6 +193,90 @@ export function AdminDashboard() {
                 <p>Ensure the Super Admin key is kept private. Blocking the key will immediately stop all AI generation for users without their own keys.</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Developer Credit Management */}
+        <Card className="border-primary/20 shadow-lg md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Developer Credit
+            </CardTitle>
+            <CardDescription>
+              Set the developer information shown in the footer and header.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Developer Name</Label>
+                <Input 
+                  placeholder="Enter Name" 
+                  value={settings.developerName || ''}
+                  onChange={(e) => setSettings({...settings, developerName: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Developer Mobile</Label>
+                <Input 
+                  placeholder="Enter Mobile Number" 
+                  value={settings.developerMobile || ''}
+                  onChange={(e) => setSettings({...settings, developerMobile: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Developer Address</Label>
+                <Input 
+                  placeholder="Enter Address" 
+                  value={settings.developerAddress || ''}
+                  onChange={(e) => setSettings({...settings, developerAddress: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Developer URL</Label>
+                <Input 
+                  placeholder="Enter Website URL" 
+                  value={settings.developerUrl || ''}
+                  onChange={(e) => setSettings({...settings, developerUrl: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Developer Skills</Label>
+                <Input 
+                  placeholder="Enter Skills (e.g. React, Next.js, Firebase)" 
+                  value={settings.developerSkills || ''}
+                  onChange={(e) => setSettings({...settings, developerSkills: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Developer Photo</Label>
+                <div className="flex items-center gap-4">
+                  {settings.developerPhoto && (
+                    <Image 
+                      src={settings.developerPhoto} 
+                      alt="Preview" 
+                      width={48} 
+                      height={48} 
+                      unoptimized
+                      referrerPolicy="no-referrer"
+                      className="h-12 w-12 rounded-full object-cover border" 
+                    />
+                  )}
+                  <Input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground">Max size 500KB. Recommended square aspect ratio.</p>
+              </div>
+            </div>
+
+            <Button className="w-full" onClick={handleSave} disabled={isLoading}>
+              <Save className="mr-2 h-4 w-4" />
+              {isLoading ? "Saving..." : "Save Developer Credit"}
+            </Button>
           </CardContent>
         </Card>
       </div>

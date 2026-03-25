@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wand2, Copy, Trash2, History, Settings, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Wand2, Copy, Trash2, History, Settings, Loader2, Check, AlertCircle, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -31,6 +31,15 @@ interface GlobalSettings {
   isSuperAdminApiKeyBlocked?: boolean;
 }
 
+interface DeveloperInfo {
+  developerName?: string;
+  developerAddress?: string;
+  developerMobile?: string;
+  developerUrl?: string;
+  developerPhoto?: string;
+  developerSkills?: string;
+}
+
 export function PromptGenerator() {
   const { user, profile, updateProfile } = useAuth();
   const [model, setModel] = useState('gemini-3.1-pro-preview');
@@ -43,8 +52,21 @@ export function PromptGenerator() {
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<Prompt[]>([]);
-  const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings & DeveloperInfo | null>(null);
   const [userApiKey, setUserApiKey] = useState(profile?.userApiKey || '');
+
+  // Load history from localStorage on mount (Smart Caching)
+  useEffect(() => {
+    if (!user) return;
+    const cachedHistory = localStorage.getItem(`prompt_history_${user.uid}`);
+    if (cachedHistory) {
+      try {
+        setHistory(JSON.parse(cachedHistory));
+      } catch (e) {
+        console.error("Failed to parse cached history", e);
+      }
+    }
+  }, [user]);
 
   // Fetch history
   useEffect(() => {
@@ -55,8 +77,18 @@ export function PromptGenerator() {
       : query(collection(db, 'prompts'), where('uid', '==', user.uid), orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const prompts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Prompt));
+      const prompts = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          // Handle Firestore Timestamp for local storage serialization
+          createdAt: data.createdAt?.toDate?.() ? data.createdAt.toDate().toISOString() : data.createdAt
+        } as Prompt;
+      });
       setHistory(prompts);
+      // Save to localStorage for smart caching
+      localStorage.setItem(`prompt_history_${user.uid}`, JSON.stringify(prompts));
     }, (err) => handleFirestoreError(err, OperationTypeEnum.LIST, 'prompts'));
 
     return () => unsubscribe();
@@ -66,7 +98,7 @@ export function PromptGenerator() {
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
-        setGlobalSettings(docSnap.data() as GlobalSettings);
+        setGlobalSettings(docSnap.data() as GlobalSettings & DeveloperInfo);
       }
     }, (err) => handleFirestoreError(err, OperationTypeEnum.GET, 'settings/global'));
 
@@ -140,9 +172,172 @@ export function PromptGenerator() {
     toast.success("Copied to clipboard!");
   };
 
+  const handlePrint = (prompt: string, title: string = "AI Generated Prompt") => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error("Please allow popups to print.");
+      return;
+    }
+
+    // Dynamic font size based on length
+    let fontSize = "12pt";
+    if (prompt.length > 2000) fontSize = "10pt";
+    if (prompt.length > 4000) fontSize = "9pt";
+    if (prompt.length < 500) fontSize = "14pt";
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 20mm;
+          }
+          body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 0;
+            font-size: ${fontSize};
+          }
+          .header {
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+          }
+          .dev-branding {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          .dev-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid #e5e7eb;
+          }
+          .dev-info {
+            display: flex;
+            flex-direction: column;
+          }
+          .dev-name {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1e40af;
+            margin: 0;
+          }
+          .dev-contact {
+            font-size: 8pt;
+            color: #6b7280;
+          }
+          .doc-meta {
+            text-align: right;
+          }
+          .doc-title {
+            font-size: 10pt;
+            color: #3b82f6;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+          .doc-date {
+            font-size: 8pt;
+            color: #9ca3af;
+          }
+          .content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            text-align: justify;
+            background: #fff;
+          }
+          .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 10px;
+            font-size: 8pt;
+            color: #9ca3af;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            background: white;
+          }
+          @media print {
+            .no-print { display: none; }
+            body { -webkit-print-color-adjust: exact; }
+          }
+          /* Smart Page Breaks */
+          h1, h2, h3 { page-break-after: avoid; }
+          p { orphans: 3; widows: 3; }
+          .content { page-break-inside: auto; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="dev-branding">
+            ${globalSettings?.developerPhoto ? `<img src="${globalSettings.developerPhoto}" class="dev-photo" />` : ''}
+            <div class="dev-info">
+              <h1 class="dev-name">${globalSettings?.developerName || 'AI Prompt Pro'}</h1>
+              <div class="dev-contact">
+                ${globalSettings?.developerAddress ? `<span>${globalSettings.developerAddress}</span>` : ''}
+                ${globalSettings?.developerMobile ? `<span> • ${globalSettings.developerMobile}</span>` : ''}
+              </div>
+              ${globalSettings?.developerUrl ? `<div class="dev-contact">${globalSettings.developerUrl}</div>` : ''}
+            </div>
+          </div>
+          <div class="doc-meta">
+            <div class="doc-title">${title}</div>
+            <div class="doc-date">Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
+          </div>
+        </div>
+        
+        <div class="content">
+          ${prompt}
+        </div>
+
+        <div class="footer">
+          <span>Handcrafted by ${globalSettings?.developerName || 'AI Prompt Pro'}</span>
+          <span>Page 1 of 1</span>
+        </div>
+
+        <script>
+          window.onload = () => {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   const saveApiKey = async () => {
     await updateProfile({ userApiKey });
     toast.success("API Key updated!");
+  };
+
+  const handleLoadHistory = (item: Prompt) => {
+    setCriteria({
+      task: (item.inputCriteria?.task as string) || '',
+      context: (item.inputCriteria?.context as string) || '',
+      constraints: (item.inputCriteria?.constraints as string) || '',
+      format: (item.inputCriteria?.format as string) || '',
+    });
+    setModel(item.modelUsed || 'gemini-3.1-pro-preview');
+    setGeneratedPrompt(item.generatedPrompt);
+    toast.info("Prompt loaded from history");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -160,7 +355,7 @@ export function PromptGenerator() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Model Selection</Label>
-              <Select value={model} onValueChange={setModel}>
+              <Select value={model} onValueChange={(val) => val && setModel(val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Model" />
                 </SelectTrigger>
@@ -251,9 +446,15 @@ export function PromptGenerator() {
                     <CardTitle>Generated Prompt</CardTitle>
                     <CardDescription>Ready to use with {model}</CardDescription>
                   </div>
-                  <Button variant="outline" size="icon" onClick={() => copyToClipboard(generatedPrompt)}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handlePrint(generatedPrompt)} className="h-8 border-primary/20 hover:bg-primary/5">
+                      <Printer className="mr-2 h-4 w-4" />
+                      Print A4
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(generatedPrompt)} className="h-8 w-8">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <pre className="whitespace-pre-wrap font-mono text-sm p-4 bg-background rounded-lg border">
@@ -282,19 +483,60 @@ export function PromptGenerator() {
                 </div>
               ) : (
                 history.map((item) => (
-                  <div key={item.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors group">
+                  <div 
+                    key={item.id} 
+                    className="p-4 border rounded-lg hover:bg-muted/50 transition-colors group cursor-pointer"
+                    onClick={() => handleLoadHistory(item)}
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h4 className="font-semibold text-sm">{item.title}</h4>
                         <p className="text-[10px] text-muted-foreground">
-                          {new Date(item.createdAt?.toDate()).toLocaleString()} • {item.modelUsed}
+                          {new Date(item.createdAt as string).toLocaleString()} • {item.modelUsed}
                         </p>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(item.generatedPrompt)}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLoadHistory(item);
+                          }}
+                          title="Load into generator"
+                        >
+                          <History className="h-3 w-3 text-primary" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePrint(item.generatedPrompt, item.title);
+                          }}
+                          title="Print A4"
+                        >
+                          <Printer className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(item.generatedPrompt);
+                          }}
+                        >
                           <Copy className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(item.id)}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(item.id);
+                          }}
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>

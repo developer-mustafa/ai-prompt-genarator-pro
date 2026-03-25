@@ -92,7 +92,13 @@ service cloud.firestore {
     function isValidSettings(data) {
       return (!('superAdminApiKey' in data) || data.superAdminApiKey is string) &&
              (!('isSuperAdminApiKeyEnabled' in data) || data.isSuperAdminApiKeyEnabled is bool) &&
-             (!('isSuperAdminApiKeyBlocked' in data) || data.isSuperAdminApiKeyBlocked is bool);
+             (!('isSuperAdminApiKeyBlocked' in data) || data.isSuperAdminApiKeyBlocked is bool) &&
+             (!('developerName' in data) || data.developerName is string) &&
+             (!('developerAddress' in data) || data.developerAddress is string) &&
+             (!('developerMobile' in data) || data.developerMobile is string) &&
+             (!('developerUrl' in data) || data.developerUrl is string) &&
+             (!('developerPhoto' in data) || data.developerPhoto is string) &&
+             (!('developerSkills' in data) || data.developerSkills is string);
     }
 
     // ===============================================================
